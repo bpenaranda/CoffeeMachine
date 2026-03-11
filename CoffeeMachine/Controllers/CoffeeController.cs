@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CoffeeMachine.Controllers
 {
-    [Route("api/[controller]")]
     [ApiController]
     public class CoffeeController : Controller
     {
@@ -14,7 +13,7 @@ namespace CoffeeMachine.Controllers
             _coffeeService = coffeeService;
         }
 
-        [HttpGet("brew-coffee")]
+        [HttpGet("/brew-coffee")]
         public async Task<IActionResult> GetCoffee()
         {
             var (statusCode, response) = await _coffeeService.PrepareCoffeeAsync();

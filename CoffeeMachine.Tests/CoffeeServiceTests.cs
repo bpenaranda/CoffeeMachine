@@ -6,6 +6,23 @@ namespace CoffeeMachine.Tests
     public class CoffeeServiceTests
     {
         [Fact]
+        public async Task PrepareCoffeeAsync_AprilFools_Returns418()
+        {
+            //Arrange
+            var fakeTimeProvider = new FakeTimeProvider();
+            fakeTimeProvider.SetUtcNow(new DateTimeOffset(2026, 4, 1, 18, 41, 0, TimeSpan.Zero));
+
+            var service = new CoffeeService(fakeTimeProvider);
+
+            //Act
+            var result = await service.PrepareCoffeeAsync();
+
+            //Assert
+            Assert.Equal(418, result.StatusCode);
+            Assert.Null(result.Response);
+        }
+
+        [Fact]
         public async Task PrepareCoffeeAsync_Normal_Returns200WithAllResponse()
         {
             //Arrange
@@ -26,7 +43,7 @@ namespace CoffeeMachine.Tests
         }
 
         [Fact]
-        public async Task PrepareCoffeeAsync_FifthCoffee_Returns503()
+        public async Task PrepareCoffeeAsync_5thCoffee_Returns503()
         {
             //Arrange
             var fakeTimeProvider = new FakeTimeProvider();
@@ -39,7 +56,7 @@ namespace CoffeeMachine.Tests
             {
                 await service.PrepareCoffeeAsync();
             }
-            ;
+
             var result = await service.PrepareCoffeeAsync();
 
             //Assert
@@ -48,7 +65,54 @@ namespace CoffeeMachine.Tests
         }
 
         [Fact]
-        public async Task PrepareCoffeeAsync_AprilFools_Returns418()
+        public async Task PrepareCoffeeAsync_6thCoffee_Returns200()
+        {
+            //Arrange
+            var fakeTimeProvider = new FakeTimeProvider();
+            fakeTimeProvider.SetUtcNow(new DateTimeOffset(2026, 1, 2, 3, 40, 0, TimeSpan.Zero));
+
+            var service = new CoffeeService(fakeTimeProvider);
+
+            //Act
+            for (int i = 0; i < 5; i++)
+            {
+                await service.PrepareCoffeeAsync();
+            }
+
+            var result = await service.PrepareCoffeeAsync();
+
+            //Assert
+            Assert.Equal(200, result.StatusCode);
+            Assert.NotNull(result.Response);
+            Assert.Equal("Your piping hot coffee is ready", result.Response.Message);
+            Assert.Contains("2026-01-02T03:40:00", result.Response.Prepared);
+        }
+
+
+        [Fact]
+        public async Task PrepareCoffeeAsync_10thCoffee_Returns503()
+        {
+            //Arrange
+            var fakeTimeProvider = new FakeTimeProvider();
+            fakeTimeProvider.SetUtcNow(new DateTimeOffset(2026, 10, 3, 5, 30, 0, TimeSpan.Zero));
+
+            var service = new CoffeeService(fakeTimeProvider);
+
+            //Act
+            for (int i = 0; i < 9; i++)
+            {
+                await service.PrepareCoffeeAsync();
+            }
+
+            var result = await service.PrepareCoffeeAsync();
+
+            //Assert
+            Assert.Equal(503, result.StatusCode);
+            Assert.Null(result.Response);
+        }
+
+        [Fact]
+        public async Task PrepareCoffeeAsync_AprilFoolsAnd5thCoffee_Returns418()
         {
             //Arrange
             var fakeTimeProvider = new FakeTimeProvider();
@@ -57,11 +121,41 @@ namespace CoffeeMachine.Tests
             var service = new CoffeeService(fakeTimeProvider);
 
             //Act
+            for (int i = 0; i < 4; i++)
+            {
+                await service.PrepareCoffeeAsync();
+            }
+
             var result = await service.PrepareCoffeeAsync();
 
             //Assert
             Assert.Equal(418, result.StatusCode);
             Assert.Null(result.Response);
+        }
+
+        [Fact]
+        public async Task PrepareCoffeeAsync_NextDay_Returns418Then503()
+        {
+            //Arrange
+            var fakeTimeProvider = new FakeTimeProvider();
+            fakeTimeProvider.SetUtcNow(new DateTimeOffset(2026, 4, 1, 23, 59, 0, TimeSpan.Zero));
+
+            var service = new CoffeeService(fakeTimeProvider);
+
+            //Act
+            for (int i = 0; i < 4; i++)
+            {
+                var result = await service.PrepareCoffeeAsync();
+                Assert.Equal(418, result.StatusCode);
+            }
+
+            fakeTimeProvider.Advance(TimeSpan.FromMinutes(5));
+
+            var fifthResult = await service.PrepareCoffeeAsync();
+
+            //Assert
+            Assert.Equal(503, fifthResult.StatusCode);
+            Assert.Null(fifthResult.Response);
         }
     }
 }
