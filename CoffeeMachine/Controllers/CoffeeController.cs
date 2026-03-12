@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace CoffeeMachine.Controllers
 {
     [ApiController]
-    public class CoffeeController : Controller
+    public class CoffeeController : ControllerBase
     {
         private readonly ICoffeeService _coffeeService;
 
@@ -18,7 +18,7 @@ namespace CoffeeMachine.Controllers
         {
             var (statusCode, response) = await _coffeeService.PrepareCoffeeAsync();
 
-            if (statusCode == 200)
+            if (statusCode == StatusCodes.Status200OK)
             {
                 return Ok(response);
             }

@@ -21,17 +21,17 @@ namespace CoffeeMachine.Services
             int currentCount = Interlocked.Increment(ref _callCounter);
 
             if (now.Month == 4 && now.Day == 1)
-                return (418, null);
+                return (StatusCodes.Status418ImATeapot, null);
 
             if (currentCount % 5 == 0)
-                return (503, null);
+                return (StatusCodes.Status503ServiceUnavailable, null);
 
             var temp = await _weatherService.GetTemperatureAsync();
             string message = temp.HasValue && temp.Value > 30
                 ? "Your refreshing iced coffee is ready"
                 : "Your piping hot coffee is ready";
 
-            return (200, new CoffeeResponse
+            return (StatusCodes.Status200OK, new CoffeeResponse
             {
                 Message = message,
                 Prepared = now.ToString("yyyy-MM-ddTHH:mm:ssK")
