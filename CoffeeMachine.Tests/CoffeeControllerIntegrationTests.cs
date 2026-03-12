@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
+using Moq;
 using System.Net;
 using System.Text.Json;
 
@@ -64,7 +65,7 @@ namespace CoffeeMachine.Tests
         }
 
         [Fact]
-        public async Task Get_5thCoffeee_Returns508()
+        public async Task Get_5thCoffee_Returns508()
         {
             //Arrange
             var client = _factory.WithWebHostBuilder(builder =>
@@ -90,6 +91,31 @@ namespace CoffeeMachine.Tests
             var response = await client.GetAsync("/brew-coffee");
 
             Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task Get_HotDay_Above30_Returns200IcedCoffee()
+        {
+            // Arrange
+            var client = _factory.WithWebHostBuilder(builder =>
+            {
+                builder.ConfigureTestServices(services =>
+                {
+                    var mockWeather = new Mock<IWeatherService>();
+                    mockWeather.Setup(w => w.GetTemperatureAsync()).ReturnsAsync(32.5); 
+
+                    services.AddSingleton<IWeatherService>(mockWeather.Object);
+                });
+            }).CreateClient();
+
+            // Act
+            var response = await client.GetAsync("/brew-coffee");
+
+            // Assert
+            response.EnsureSuccessStatusCode();
+            var responseString = await response.Content.ReadAsStringAsync();
+
+            Assert.Contains("Your refreshing iced coffee is ready", responseString);
         }
     }
 }

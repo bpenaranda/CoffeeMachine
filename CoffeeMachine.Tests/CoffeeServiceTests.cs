@@ -1,5 +1,7 @@
-﻿using CoffeeMachine.Services;
+﻿using CoffeeMachine.Interfaces;
+using CoffeeMachine.Services;
 using Microsoft.Extensions.Time.Testing;
+using Moq;
 
 namespace CoffeeMachine.Tests
 {
@@ -12,7 +14,7 @@ namespace CoffeeMachine.Tests
             var fakeTimeProvider = new FakeTimeProvider();
             fakeTimeProvider.SetUtcNow(new DateTimeOffset(2026, 4, 1, 18, 41, 0, TimeSpan.Zero));
 
-            var service = new CoffeeService(fakeTimeProvider);
+            var service = new CoffeeService(fakeTimeProvider, new Mock<IWeatherService>().Object);
 
             //Act
             var result = await service.PrepareCoffeeAsync();
@@ -30,7 +32,7 @@ namespace CoffeeMachine.Tests
             var testDate = new DateTimeOffset(2026, 2, 14, 13, 30, 0, TimeSpan.Zero);
             fakeTimeProvider.SetUtcNow(testDate);
 
-            var service = new CoffeeService(fakeTimeProvider);
+            var service = new CoffeeService(fakeTimeProvider, new Mock<IWeatherService>().Object);
 
             //Act
             var result = await service.PrepareCoffeeAsync();
@@ -49,7 +51,7 @@ namespace CoffeeMachine.Tests
             var fakeTimeProvider = new FakeTimeProvider();
             fakeTimeProvider.SetUtcNow(new DateTimeOffset(2026, 5, 3, 5, 30, 0, TimeSpan.Zero));
 
-            var service = new CoffeeService(fakeTimeProvider);
+            var service = new CoffeeService(fakeTimeProvider, new Mock<IWeatherService>().Object);
 
             //Act
             for (int i = 0; i < 4; i++)
@@ -71,7 +73,7 @@ namespace CoffeeMachine.Tests
             var fakeTimeProvider = new FakeTimeProvider();
             fakeTimeProvider.SetUtcNow(new DateTimeOffset(2026, 1, 2, 3, 40, 0, TimeSpan.Zero));
 
-            var service = new CoffeeService(fakeTimeProvider);
+            var service = new CoffeeService(fakeTimeProvider, new Mock<IWeatherService>().Object);
 
             //Act
             for (int i = 0; i < 5; i++)
@@ -96,7 +98,7 @@ namespace CoffeeMachine.Tests
             var fakeTimeProvider = new FakeTimeProvider();
             fakeTimeProvider.SetUtcNow(new DateTimeOffset(2026, 10, 3, 5, 30, 0, TimeSpan.Zero));
 
-            var service = new CoffeeService(fakeTimeProvider);
+            var service = new CoffeeService(fakeTimeProvider, new Mock<IWeatherService>().Object);
 
             //Act
             for (int i = 0; i < 9; i++)
@@ -118,7 +120,7 @@ namespace CoffeeMachine.Tests
             var fakeTimeProvider = new FakeTimeProvider();
             fakeTimeProvider.SetUtcNow(new DateTimeOffset(2026, 4, 1, 18, 41, 0, TimeSpan.Zero));
 
-            var service = new CoffeeService(fakeTimeProvider);
+            var service = new CoffeeService(fakeTimeProvider, new Mock<IWeatherService>().Object);
 
             //Act
             for (int i = 0; i < 4; i++)
@@ -140,7 +142,7 @@ namespace CoffeeMachine.Tests
             var fakeTimeProvider = new FakeTimeProvider();
             fakeTimeProvider.SetUtcNow(new DateTimeOffset(2026, 4, 1, 23, 59, 0, TimeSpan.Zero));
 
-            var service = new CoffeeService(fakeTimeProvider);
+            var service = new CoffeeService(fakeTimeProvider, new Mock<IWeatherService>().Object);
 
             //Act
             for (int i = 0; i < 4; i++)
@@ -156,6 +158,66 @@ namespace CoffeeMachine.Tests
             //Assert
             Assert.Equal(503, fifthResult.StatusCode);
             Assert.Null(fifthResult.Response);
+        }
+
+        [Fact]
+        public async Task PrepareCoffeeAsync_TempAbove30_Returns200IcedCoffeeMessage()
+        {
+            // Arrange
+            var fakeTimeProvider = new FakeTimeProvider();
+            fakeTimeProvider.SetUtcNow(new DateTimeOffset(2026, 5, 1, 12, 0, 0, TimeSpan.Zero));
+
+            var mockWeather = new Mock<IWeatherService>();
+            mockWeather.Setup(w => w.GetTemperatureAsync()).ReturnsAsync(35.0);
+
+            var service = new CoffeeService(fakeTimeProvider, mockWeather.Object);
+
+            // Act
+            var result = await service.PrepareCoffeeAsync();
+
+            // Assert
+            Assert.Equal(200, result.StatusCode);
+            Assert.NotNull(result.Response);
+            Assert.Equal("Your refreshing iced coffee is ready", result.Response.Message);
+        }
+
+        [Fact]
+        public async Task PrepareCoffeeAsync_TempBelow31_Returns200HotCoffeeMessage()
+        {
+            // Arrange
+            var fakeTimeProvider = new FakeTimeProvider();
+
+            var mockWeather = new Mock<IWeatherService>();
+            mockWeather.Setup(w => w.GetTemperatureAsync()).ReturnsAsync(30.0);
+
+            var service = new CoffeeService(fakeTimeProvider, mockWeather.Object);
+
+            // Act
+            var result = await service.PrepareCoffeeAsync();
+
+            // Assert
+            Assert.Equal(200, result.StatusCode);
+            Assert.NotNull(result.Response);
+            Assert.Equal("Your piping hot coffee is ready", result.Response?.Message);
+        }
+
+        [Fact]
+        public async Task PrepareCoffeeAsync_WeatherApiFails_DefaultsToHotCoffeeMessage()
+        {
+            // Arrange
+            var fakeTimeProvider = new FakeTimeProvider();
+
+            var mockWeather = new Mock<IWeatherService>();
+            mockWeather.Setup(w => w.GetTemperatureAsync()).ReturnsAsync((double?)null);
+
+            var service = new CoffeeService(fakeTimeProvider, mockWeather.Object);
+
+            // Act
+            var result = await service.PrepareCoffeeAsync();
+
+            // Assert
+            Assert.Equal(200, result.StatusCode);
+            Assert.Equal("Your piping hot coffee is ready", result.Response?.Message);
         }
     }
 }
