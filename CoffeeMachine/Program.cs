@@ -12,6 +12,12 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<ICoffeeService, CoffeeService>();
 
+builder.Services.AddHttpClient<IWeatherService, WeatherService>(client =>
+{
+    var baseUrl = builder.Configuration["WeatherAPI:BaseUrl"];
+    client.BaseAddress = new Uri(baseUrl!);
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
